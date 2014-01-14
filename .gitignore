@@ -44,5 +44,4 @@ Thumbs.db
 
 #folder#
 ######################
-jsons
-log
+node_modules
