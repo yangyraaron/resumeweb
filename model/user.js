@@ -54,7 +54,7 @@ User.prototype = {
 
 			console.log('finding users with pageIndex : %,page size:%', pageIndex, pageSize);
 
-			var query = UserModel.find({});
+			var query = UserModel.find({}, '_id userName');
 			query.sort({
 				userName: 1
 			});
@@ -64,19 +64,19 @@ User.prototype = {
 				if (err) {
 					console.error('call user.list error');
 				}
-
-				//console.log('users:' + users);
 				if (callback) callback(err, users);
 			});
 		});
 	},
 	info: function(id, callback) {
+		console.log('the call user.info with id:' + id);
+		var that = this;
 		dbInstance.open({}, function(err) {
-			var userModel = getModel(that);
+			var UserModel = getModel(that);
 
 			UserModel.findById(id, function(err, user) {
 				if (err) {
-					console.err('call user.info error');
+					console.error('call user.info error:' + err);
 				}
 				if (callback) callback(err, user);
 			});

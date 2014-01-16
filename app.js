@@ -23,7 +23,7 @@ globalDomain.run(function() {
 
 		app.engine('.html', ejs.__express);
 		app.set('views', viewDir);
-		app.set('view engine','html')
+		app.set('view engine', 'html')
 		app.use(express.static(viewDir));
 		app.use(express.favicon());
 
@@ -31,10 +31,10 @@ globalDomain.run(function() {
 		app.use(express.session());
 
 	});
-	
-	app.use('/users/:id',homeController.info);
-	app.use('/users',homeController.list);
-	app.use('/',homeController.home);
+
+	app.get('/users', homeController.list);
+	app.get('/users/:id', homeController.info);
+	app.get('/', homeController.home);
 
 	app.listen(3000);
 

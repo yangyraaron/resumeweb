@@ -8,7 +8,8 @@ function Db(host, port, database) {
 
 Db.prototype = {
 	isConnected:function () {
-		return mongoose.connection && mongoose.connection.readyState == 1;	
+		return mongoose.connection && (mongoose.connection.readyState == 1 ||
+			mongoose.connection.readyState==2);	
 	},
 	open: function(option,callback) {
 		if(this.isConnected()){
