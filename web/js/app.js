@@ -72,7 +72,14 @@ $(function() {
 		exports.User = User;
 		exports.UserList = Backbone.Collection.extend({
 			model: User,
-			url: '/users'
+			paging:{
+				curIndex:1,
+				size:10
+			},
+			url: function () {
+				var url = "users?pageIndex="+this.paging.curIndex+"&pageSize="+this.paging.size;
+				return url;
+			}
 		});
 	});
 
@@ -89,6 +96,7 @@ $(function() {
 		}
 
 		var userBasicTemplate = generateBaiscRowTemplate({
+			userName:'姓名',
 			sex: '性別',
 			birthday: '生日',
 			mobile: '手机',
@@ -187,13 +195,17 @@ $(function() {
 		});
 
 		var UsersListView = Backbone.View.extend({
-			el: $('#div_users'),
+			el: $('#div_nav'),
+			events:{
+				'click #a_prev':'onPrev',
+				'click #a_next':'onNext'
+			},
 			initialize: function() {
 				console.log('UsersListView is initializing');
 
-				//this.listenTo(users,'add',this.addUser);
 				this.listenTo(this.model, 'reset', this.addAll);
-				//this.listenTo(users,'all',this.render);
+
+				this.usersGroup = $('#div_users');
 
 				this.model.fetch({
 					reset: true
@@ -209,12 +221,25 @@ $(function() {
 					model: user
 				});
 
-				this.$el.append(view.render().el);
+				this.usersGroup.append(view.render().el);
 			},
 			addAll: function() {
 				console.log('add all users');
 
+				this.usersGroup.empty();
 				this.model.each(this.addUser, this);
+			},
+			onPrev:function  () {
+				console.log("prev");
+
+				this.model.paging.curIndex-=1
+				this.model.fetch({reset:true});
+			},
+			onNext:function () {
+				console.log('next');
+
+				this.model.paging.curIndex+=1
+				this.model.fetch({reset:true});	
 			}
 
 		});
