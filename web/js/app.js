@@ -100,8 +100,8 @@ $(function() {
 			var userBasicRowTemplate = '<div class="row">';
 
 			for (var key in map) {
-				userBasicRowTemplate += '<div class="col-xs-2">' + map[key] + ':</div>';
-				userBasicRowTemplate += '<div class="col-xs-4"><%=' + key + '%></div>';
+				userBasicRowTemplate += '<div class="col-xs-1">' + map[key] + ':</div>';
+				userBasicRowTemplate += '<div class="col-xs-3"><%=' + key + '%></div>';
 			};
 			userBasicRowTemplate += '</div>';
 			return userBasicRowTemplate;
@@ -148,16 +148,16 @@ $(function() {
 				this.workExContainer = $('#tb_user_experiences');
 				this.educationContainer = $('#tb_education');
 
-				this.listenTo(this.model, 'sync', this.render);
+				//this.listenTo(this.model, 'sync', this.render);
 				//this.listenTo(this.model, 'change', this.update);
-				this.listenTo(this.model, 'change:_id', this.update);
+				this.listenTo(this.model, 'change:_id', this.render);
 				this.listenTo(this.model, 'destroy', this.remove);
 
 
 			},
 			update: function() {
 				console.log('model is updating');
-				this.model.fetch();
+				//this.model.fetch();
 			},
 			render: function() {
 				console.log('UserBasicView is rendering');
@@ -212,10 +212,21 @@ $(function() {
 			onSelected: function(e) {
 				console.log('the user ' + this.model.get('userName') + ' selected');
 
-				this.trigger('selected', {
-					user: this.model,
-					view: this
-				});
+				//if still have not sychornized with server then sync
+				if (!this.model.get('mobile')) {
+					this.listenTo(this.model, 'sync', function() {
+						this.trigger('selected', {
+							user: this.model,
+							view: this
+						});
+					});
+					this.model.fetch();
+				} else {
+					this.trigger('selected', {
+						user: this.model,
+						view: this
+					});
+				}
 			}
 
 		});
@@ -318,7 +329,17 @@ $(function() {
 	});
 
 	users.on('selectedUserChanged', function(arg) {
-		user.set({'_id':arg.user.get('_id')});
+		user.set({
+			'_id': arg.user.get('_id'),
+			userName: arg.user.get('userName'),
+			sex: arg.user.get('set'),
+			birthday: arg.user.get('birthday'),
+			mobile: arg.user.get('mobile'),
+			email: arg.user.get('email'),
+			source: arg.user.get('source'),
+			education: arg.user.get('education'),
+			experiences: arg.user.get('experiences')
+		});
 	});
 
 });
