@@ -72,13 +72,25 @@ $(function() {
 		exports.User = User;
 		exports.UserList = Backbone.Collection.extend({
 			model: User,
-			paging:{
-				curIndex:1,
-				size:10
+			paging: {
+				curIndex: 1,
+				size: 10
 			},
-			url: function () {
-				var url = "users?pageIndex="+this.paging.curIndex+"&pageSize="+this.paging.size;
+			url: function() {
+				var url = "users?pageIndex=" + this.paging.curIndex + "&pageSize=" + this.paging.size;
 				return url;
+			},
+			selectedUser: null,
+			select: function(user) {
+				//if the selected user is the same one,then do nothing
+				if (this.selectedUser && user && this.selectedUser.id == user.id) {
+					return;
+				}
+
+				this.selectedUser = user;
+				this.trigger('selectedUserChanged', {
+					user: this.selectedUser
+				});
 			}
 		});
 	});
@@ -96,7 +108,7 @@ $(function() {
 		}
 
 		var userBasicTemplate = generateBaiscRowTemplate({
-			userName:'姓名',
+			userName: '姓名',
 			sex: '性別',
 			birthday: '生日',
 			mobile: '手机',
@@ -136,13 +148,20 @@ $(function() {
 				this.workExContainer = $('#tb_user_experiences');
 				this.educationContainer = $('#tb_education');
 
-				this.listenTo(this.model, 'change', this.render);
+				this.listenTo(this.model, 'sync', this.render);
+				//this.listenTo(this.model, 'change', this.update);
+				this.listenTo(this.model, 'change:_id', this.update);
 				this.listenTo(this.model, 'destroy', this.remove);
 
+
+			},
+			update: function() {
+				console.log('model is updating');
 				this.model.fetch();
 			},
 			render: function() {
 				console.log('UserBasicView is rendering');
+
 				this.basicContainer.html(this.basicTemplate(this.model.toJSON()));
 
 				this.addEducation();
@@ -175,35 +194,44 @@ $(function() {
 
 				this.listenTo(this.model, 'change', this.render);
 				this.listenTo(this.model, 'destroy', this.remove);
+
 			},
 			render: function() {
 				console.log('UserItemView is rendering');
 
 				this.$el.html(this.template(this.model.toJSON()));
-
+				this.ael = this.$el.find('a');
 				return this;
 			},
-			onSelected: function() {
+			active: function() {
+				this.ael.addClass('active');
+			},
+			deactive: function() {
+				this.ael.removeClass('active');
+			},
+			onSelected: function(e) {
 				console.log('the user ' + this.model.get('userName') + ' selected');
 
-				this.listenTo(this.model, 'sync', function() {
-					currentUser.bindData(this.model);
-				})
-				this.model.fetch();
+				this.trigger('selected', {
+					user: this.model,
+					view: this
+				});
 			}
 
 		});
 
 		var UsersListView = Backbone.View.extend({
 			el: $('#div_nav'),
-			events:{
-				'click #a_prev':'onPrev',
-				'click #a_next':'onNext'
+			events: {
+				'click #a_prev': 'onPrev',
+				'click #a_next': 'onNext'
 			},
+			activedView: null,
 			initialize: function() {
 				console.log('UsersListView is initializing');
 
-				this.listenTo(this.model, 'reset', this.addAll);
+				this.listenTo(this.model, 'reset', this.render);
+				//this.listenTo(this.model,'selectedUserChanged',onSelectedChanged);
 
 				this.usersGroup = $('#div_users');
 
@@ -213,6 +241,9 @@ $(function() {
 			},
 			render: function() {
 				console.log('UsersListView is rendering');
+				this.addAll();
+
+				this.activedView.onSelected();
 			},
 			addUser: function(user) {
 				console.log('add User');
@@ -221,7 +252,26 @@ $(function() {
 					model: user
 				});
 
+				this.listenTo(view, 'selected', this.onSelectedChanged);
+
 				this.usersGroup.append(view.render().el);
+
+				if (!this.activedView) {
+					this.activedView = view;
+				}
+			},
+			onSelectedChanged: function(arg) {
+				if (this.activedView) {
+					this.activedView.deactive();
+				}
+				this.activedView = arg.view;
+				this.activedView.active();
+
+				this.model.select(arg.user);
+			},
+			clear: function() {
+				this.activedView = null;
+				this.usersGroup.empty();
 			},
 			addAll: function() {
 				console.log('add all users');
@@ -229,17 +279,21 @@ $(function() {
 				this.usersGroup.empty();
 				this.model.each(this.addUser, this);
 			},
-			onPrev:function  () {
+			onPrev: function() {
 				console.log("prev");
 
-				this.model.paging.curIndex-=1
-				this.model.fetch({reset:true});
+				this.model.paging.curIndex -= 1
+				this.model.fetch({
+					reset: true
+				});
 			},
-			onNext:function () {
+			onNext: function() {
 				console.log('next');
 
-				this.model.paging.curIndex+=1
-				this.model.fetch({reset:true});	
+				this.model.paging.curIndex += 1
+				this.model.fetch({
+					reset: true
+				});
 			}
 
 		});
@@ -252,15 +306,19 @@ $(function() {
 	var Models = require('Models');
 	var Views = require('Views');
 
-	var currentUser = new Models.User();
-
-	var userBasicView = new Views.UserBasicView({
-		model: currentUser
-	});
-
 	var users = new Models.UserList();
 
 	var app = new Views.UsersListView({
 		model: users
 	});
+
+	var user = new Models.User();
+	var detailView = new Views.UserBasicView({
+		model: user
+	});
+
+	users.on('selectedUserChanged', function(arg) {
+		user.set({'_id':arg.user.get('_id')});
+	});
+
 });
