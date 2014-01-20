@@ -74,7 +74,7 @@ $(function() {
 			model: User,
 			paging: {
 				curIndex: 1,
-				size: 10
+				size: 20
 			},
 			url: function() {
 				var url = "users?pageIndex=" + this.paging.curIndex + "&pageSize=" + this.paging.size;
@@ -117,7 +117,7 @@ $(function() {
 		});
 
 		var userItemTemplate = '<a href="#" class="list-group-item">' +
-			'<h4 class="list-group-item-heading"><%= userName%></h4>';
+			'<h4 class="list-group-item-heading text-center"><%= userName%></h4>';
 
 		var workExTemplate = '<tr><td><%=time%></td>' +
 			'<td><%=position%></td>' +
@@ -148,16 +148,9 @@ $(function() {
 				this.workExContainer = $('#tb_user_experiences');
 				this.educationContainer = $('#tb_education');
 
-				//this.listenTo(this.model, 'sync', this.render);
-				//this.listenTo(this.model, 'change', this.update);
 				this.listenTo(this.model, 'change:_id', this.render);
 				this.listenTo(this.model, 'destroy', this.remove);
 
-
-			},
-			update: function() {
-				console.log('model is updating');
-				//this.model.fetch();
 			},
 			render: function() {
 				console.log('UserBasicView is rendering');
@@ -242,9 +235,8 @@ $(function() {
 				console.log('UsersListView is initializing');
 
 				this.listenTo(this.model, 'reset', this.render);
-				//this.listenTo(this.model,'selectedUserChanged',onSelectedChanged);
 
-				this.usersGroup = $('#div_users');
+				this.usersGroup1 = $('#div_users');
 
 				this.model.fetch({
 					reset: true
@@ -252,11 +244,11 @@ $(function() {
 			},
 			render: function() {
 				console.log('UsersListView is rendering');
-				this.addAll();
+				this.addPage(0, this.usersGroup1);
 
 				this.activedView.onSelected();
 			},
-			addUser: function(user) {
+			addUser: function(user, usersGroup) {
 				console.log('add User');
 
 				var view = new UserItemView({
@@ -265,7 +257,7 @@ $(function() {
 
 				this.listenTo(view, 'selected', this.onSelectedChanged);
 
-				this.usersGroup.append(view.render().el);
+				usersGroup.append(view.render().el);
 
 				if (!this.activedView) {
 					this.activedView = view;
@@ -284,27 +276,39 @@ $(function() {
 				this.activedView = null;
 				this.usersGroup.empty();
 			},
-			addAll: function() {
-				console.log('add all users');
+			addPage: function(index, container) {
+				console.log('add all users to Group' + index);
+				container.empty();
+				this.activedView = null;
+				var i = index * 10;
+				var len = (index + 1) * 10;
+				len = len < this.model.length ? len : this.model.length;
 
-				this.usersGroup.empty();
-				this.model.each(this.addUser, this);
+				while (i < len) {
+					this.addUser(this.model.at(i), container);
+					i++;
+				}
+			},
+			syncData: function(count) {
+				var curIndex = this.model.paging.curIndex;
+				var index = curIndex + count;
+
+				if (index < 0)
+					index = 0;
+
+				this.model.paging.curIndex = index;
+				this.model.fetch({
+					reset: true
+				});
 			},
 			onPrev: function() {
 				console.log("prev");
 
-				this.model.paging.curIndex -= 1
-				this.model.fetch({
-					reset: true
-				});
+				this.syncData(-1);
 			},
 			onNext: function() {
 				console.log('next');
-
-				this.model.paging.curIndex += 1
-				this.model.fetch({
-					reset: true
-				});
+				this.syncData(1);
 			}
 
 		});
