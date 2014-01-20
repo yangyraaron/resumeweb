@@ -252,6 +252,7 @@ $(function() {
 				this.model.fetch({
 					reset: true
 				});
+				this.slider.carousel('pause');
 			},
 			render: function() {
 				console.log('UsersListView is rendering');
@@ -383,7 +384,7 @@ $(function() {
 		user.set({
 			'_id': arg.user.get('_id'),
 			userName: arg.user.get('userName'),
-			sex: arg.user.get('set'),
+			sex: arg.user.get('sex'),
 			birthday: arg.user.get('birthday'),
 			mobile: arg.user.get('mobile'),
 			email: arg.user.get('email'),
