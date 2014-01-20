@@ -127,10 +127,14 @@ $(function() {
 			'<td><%= speciality%></td>' +
 			'<td><%= degree%></td></tr>';
 
+		var slidePageTemplate = '<div class="item">' +
+			'<div class="list-group"></div></div>';
+
 		exports.UserBasicTemplate = userBasicTemplate;
 		exports.UserItemTemplate = userItemTemplate;
 		exports.WorkExTemplate = workExTemplate;
 		exports.EducationTemplate = educationTemplate;
+		exports.SlidePageTemplate = slidePageTemplate;
 	});
 
 	define('Views', function(require, exports, module) {
@@ -225,18 +229,25 @@ $(function() {
 		});
 
 		var UsersListView = Backbone.View.extend({
-			el: $('#div_nav'),
+			el: $('#div_slider'),
 			events: {
 				'click #a_prev': 'onPrev',
 				'click #a_next': 'onNext'
 			},
 			activedView: null,
+			internalIndex: 0,
+			totalPages: 0,
+			slidePageTemplate: templates.SlidePageTemplate,
+			paging: {
+				oper: null
+			},
 			initialize: function() {
 				console.log('UsersListView is initializing');
 
 				this.listenTo(this.model, 'reset', this.render);
 
-				this.usersGroup1 = $('#div_users');
+				this.slider = $('#div_slider');
+				this.container = this.slider.find('.carousel-inner');
 
 				this.model.fetch({
 					reset: true
@@ -244,9 +255,25 @@ $(function() {
 			},
 			render: function() {
 				console.log('UsersListView is rendering');
-				this.addPage(0, this.usersGroup1);
 
-				this.activedView.onSelected();
+				if (this.model.length == 0)
+					return;
+
+				if (this.totalPages == 0) {
+					this.addPage(0, {
+						active: true
+					});
+				} else
+					this.addPage(0);
+
+				this.addPage(1);
+
+				var pagingOper = this.paging.oper;
+				if (this.paging.oper == 'next') {
+					this.slider.carousel('next');
+				}
+				this.syncInternalIndex(this.internalIndex+1);
+				this.slider.carousel('pause');
 			},
 			addUser: function(user, usersGroup) {
 				console.log('add User');
@@ -259,9 +286,6 @@ $(function() {
 
 				usersGroup.append(view.render().el);
 
-				if (!this.activedView) {
-					this.activedView = view;
-				}
 			},
 			onSelectedChanged: function(arg) {
 				if (this.activedView) {
@@ -272,43 +296,66 @@ $(function() {
 
 				this.model.select(arg.user);
 			},
-			clear: function() {
-				this.activedView = null;
-				this.usersGroup.empty();
-			},
-			addPage: function(index, container) {
+			addPage: function(index, options) {
 				console.log('add all users to Group' + index);
-				container.empty();
-				this.activedView = null;
+
+				options = $.extend({
+					active: false
+				}, options);
+				var page = $(this.slidePageTemplate);
+				if (options.active) {
+					page.addClass('active');
+				}
+
 				var i = index * 10;
 				var len = (index + 1) * 10;
 				len = len < this.model.length ? len : this.model.length;
 
 				while (i < len) {
-					this.addUser(this.model.at(i), container);
+					this.addUser(this.model.at(i), page);
 					i++;
 				}
+
+				this.container.append(page);
+				this.totalPages += 1;
+			},
+			syncInternalIndex: function(value) {
+				if (value < 1)
+					this.internalIndex = 1;
+				else
+					this.internalIndex = value;
 			},
 			syncData: function(count) {
-				var curIndex = this.model.paging.curIndex;
-				var index = curIndex + count;
+				if (count % 2 != 0) {
+					var count = count + 1;
+				}
+				this.paging.oper = 'next';
 
-				if (index < 0)
-					index = 0;
-
-				this.model.paging.curIndex = index;
+				this.model.paging.curIndex = (count / 2);
 				this.model.fetch({
 					reset: true
 				});
 			},
 			onPrev: function() {
 				console.log("prev");
+				var count = this.internalIndex - 1;
+				this.syncInternalIndex(count);
+				if (count >= 1) {
+					this.slider.carousel('prev');
+					this.slider.carousel('pause');
+				}
 
-				this.syncData(-1);
 			},
 			onNext: function() {
 				console.log('next');
-				this.syncData(1);
+				var count = this.internalIndex + 1;
+				if (count <= this.totalPages) {
+					this.slider.carousel('next');
+					this.slider.carousel('pause');
+					this.syncInternalIndex(count);
+				} else {
+					this.syncData(count);
+				}
 			}
 
 		});
